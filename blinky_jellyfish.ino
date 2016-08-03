@@ -13,6 +13,9 @@ byte inByte = 0;
 #define DATA_PIN 3
 #define CLOCK_PIN 13
 
+//this is the pin that takes the battery down
+#define BATTERY_DISABLE_PIN 9
+
 void flashlight();
 void flashlight100();
 void flashlight75();
@@ -46,10 +49,11 @@ typedef void (*SimplePatternList[])();
 SimplePatternList gPatterns = { palette_fader, off, breath, off, flashlight100, flashlight50, flashlight10, off, rainbow_cylon, off, red_rand, green_rand, blue_rand, off, earth_rand, air_rand, fire_rand, water_rand, off, randy, off };
 volatile uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 
-
 void setup() { 
   Serial.begin(9600);
 	pinMode(interruptPin, INPUT_PULLUP);
+  pinMode(BATTERY_DISABLE_PIN, OUTPUT);
+  digitalWrite(BATTERY_DISABLE_PIN, HIGH);
   attachInterrupt(digitalPinToInterrupt(interruptPin), nextPattern, RISING);
 	LEDS.addLeds<NEOPIXEL,DATA_PIN>(leds,NUM_LEDS);
 	LEDS.setBrightness(64);
@@ -68,7 +72,21 @@ void loop() {
     if(inByte == 110)
       nextPattern();
   }  
+  
+  checkVoltageAndDisableIfLow();
   gPatterns[gCurrentPatternNumber]();
+}
+
+void checkVoltageAndDisableIfLow(){
+  int LBO = analogRead(A1);
+  Serial.println(LBO);
+  if(LBO < 800)
+  {
+    //That's low
+    Serial.println("Shutting down, battery power critically low");
+    delay(1000);
+    digitalWrite(BATTERY_DISABLE_PIN, LOW);    
+  }
 }
 
 void nextPattern()
@@ -88,6 +106,7 @@ int hue = 0;
 int divisor = 30;
 void breath()
 {
+  Serial.println("Starting breath");
   float breath = (exp(sin(millis()/5000.0*PI)) - 0.36787944)*108.0;
   breath = map(breath, 0, 255, 20, 255);
   FastLED.setBrightness(breath);
@@ -101,6 +120,7 @@ void breath()
 
 void randy()
 {
+  Serial.println("Starting randy");
   CRGB r;
   leds[random(0,NUM_LEDS)] = r.setRGB(random(0,256),random(0,256),random(0,256));
   FastLED.show();
@@ -135,6 +155,7 @@ void flashlight10(){
 
 void flashlight()
 {
+  Serial.println("Starting flashlight");
   for(int i = 0; i < NUM_LEDS; i++) {
     leds[i] = CRGB::White;
     // Show the leds
@@ -144,6 +165,7 @@ void flashlight()
 
 void off()
 {
+  Serial.println("Turning Off");
   for(int i = 0; i < NUM_LEDS; i++) {
     leds[i] = CRGB::Black;
     // Show the leds
