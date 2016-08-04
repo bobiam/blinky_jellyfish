@@ -3,15 +3,15 @@
 // How many leds in your strip?
 #define NUM_LEDS 12
 
+//Where's the button - momentary tactile switch for pattern advancement
 const byte interruptPin = 2;
 
+//for catching the serial in - used for remote control
 byte inByte = 0;
 
 // For led chips like Neopixels, which have a data line, ground, and power, you just
-// need to define DATA_PIN.  For led chipsets that are SPI based (four wires - data, clock,
-// ground, and power), like the LPD8806, define both DATA_PIN and CLOCK_PIN
+// need to define DATA_PIN.  
 #define DATA_PIN 3
-#define CLOCK_PIN 13
 
 //this is the pin that takes the battery down
 #define BATTERY_DISABLE_PIN 9
@@ -38,25 +38,39 @@ void palette_fader();
 void FillLEDsFromPaletteColors( uint8_t colorIndex);
 void ChangePalettePeriodically();
 
+//initialize palettes
 CRGBPalette16 currentPalette( CRGB::Black);
 CRGBPalette16 targetPalette( OceanColors_p );
 
+//super helpful FastLED array size function.  WHY IS THIS NOT VANILLA ARDUINO?!
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
 // Define the array of leds
 CRGB leds[NUM_LEDS];
+
+//our list of patterns
 typedef void (*SimplePatternList[])();
 SimplePatternList gPatterns = { palette_fader, off, breath, off, flashlight100, flashlight50, flashlight10, off, rainbow_cylon, off, red_rand, green_rand, blue_rand, off, earth_rand, air_rand, fire_rand, water_rand, off, randy, off };
 volatile uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 
 void setup() { 
+  //set up our initial pins and serial comm
   Serial.begin(9600);
-	pinMode(interruptPin, INPUT_PULLUP);
+	  
+  //define and take battery enable high, when it goes to ground all power shuts down.
   pinMode(BATTERY_DISABLE_PIN, OUTPUT);
   digitalWrite(BATTERY_DISABLE_PIN, HIGH);
+
+  //define and configure button/interrupt for pattern advancement
+  pinMode(interruptPin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(interruptPin), nextPattern, RISING);
+  
 	LEDS.addLeds<NEOPIXEL,DATA_PIN>(leds,NUM_LEDS);
 	LEDS.setBrightness(64);
+
+  //how big's your battery?  Limit power.
+  FastLED.setMaxPowerInVoltsAndMilliamps(5,400); 
+ 
   leds[0] = CRGB::Red;
   delay(2000);
   FastLED.show();
@@ -293,7 +307,7 @@ void palette_fader(){
 
 
   
-  //startIndex = startIndex + 1; /* motion speed */
+  startIndex = startIndex + 1; /* motion speed */
   FillLEDsFromPaletteColors( startIndex);
   FastLED.show();
 }
