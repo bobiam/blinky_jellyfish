@@ -94,12 +94,21 @@ void loop() {
 void checkVoltageAndDisableIfLow(){
   int LBO = analogRead(A1);
   Serial.println(LBO);
-  if(LBO < 800)
+  if(LBO < 655)
   {
-    //That's low
+    //That's low.  655 is about 3.2V
     Serial.println("Shutting down, battery power critically low");
-    delay(1000);
-    digitalWrite(BATTERY_DISABLE_PIN, LOW);    
+    //flash 5 times to say "I'm going offline"
+    FastLED.setBrightness(255);
+    for(int i=0;i<5;i++)
+    {
+      flashlight();
+      delay(100);
+      off();
+      delay(50);  
+    }
+    digitalWrite(BATTERY_DISABLE_PIN, LOW);   
+    delay(2000); 
   }
 }
 
